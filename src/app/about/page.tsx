@@ -2,12 +2,11 @@ import Link from "next/link";
 import { PageHero } from "@/components/PageHero";
 import { Reveal } from "@/components/Reveal";
 
-// TODO(team): replace the placeholders below with real names, roles and the course details.
 const TEAM = [
-  { name: "[Name 1]", role: "[Role]" },
-  { name: "[Name 2]", role: "[Role]" },
-  { name: "[Name 3]", role: "[Role]" },
-  { name: "[Name 4]", role: "[Role]" },
+  { name: "Mohid Shahzad", role: "Team member" },
+  { name: "Abdul Ahad", role: "Team member" },
+  { name: "Abaidullah Abid", role: "Team member" },
+  { name: "Raheeq Rizwan", role: "Team member" },
 ];
 
 const BUILT_WITH = [
@@ -30,7 +29,7 @@ export default function About() {
           <p className="text-base leading-relaxed text-white/70">
             You can&apos;t see how something looks on you until it arrives. Mirrorly lets you see it first, with a photo you already have, in about a minute. Our focus was making that feel simple: three clear steps, honest waiting, and plain messages when something goes wrong.
           </p>
-          <p className="text-sm text-white/70">[Course name], [University], [Semester]. Supervised by [Teacher name].</p>
+          <p className="text-sm text-white/70">HCI and Computer Graphics, University of Faisalabad, 5th semester, Fall 2026. Supervised by Hassan Raza.</p>
         </Reveal>
       </section>
 
