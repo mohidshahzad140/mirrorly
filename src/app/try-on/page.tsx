@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CompareSlider } from "@/components/CompareSlider";
+import { SiteHeader } from "@/components/SiteHeader";
+import { saveLocal } from "@/lib/localHistory";
 import { MESSAGES } from "@/lib/messages";
 import { prepareImage, validateImage } from "@/lib/image";
 import { runTryOn, TryOnError, type Category, type ModelId, type TryOnStatus } from "@/lib/tryon";
@@ -67,6 +69,7 @@ export default function TryOnPage() {
   const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState<{ url: string; model: ModelId } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [saved, setSaved] = useState<boolean | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const busyRef = useRef(false);
 
@@ -99,6 +102,11 @@ export default function TryOnPage() {
       if (ctrl.signal.aborted) return;
       setResult({ url: URL.createObjectURL(out.image), model: out.model });
       setPhase("result");
+      setSaved(null);
+      saveLocal({ image: out.image, category, model: out.model }).then(
+        () => setSaved(true),
+        () => setSaved(false),
+      );
     } catch (e) {
       if (ctrl.signal.aborted || (e instanceof TryOnError && e.code === "cancelled")) {
         setPhase("pick");
@@ -132,10 +140,7 @@ export default function TryOnPage() {
       <div className="blob absolute -bottom-32 right-[8%] h-[420px] w-[420px] bg-yellow opacity-80" aria-hidden />
       <section className="relative rounded-br-[200px] rounded-bl-[48px] bg-yellow px-6 pb-44 pt-6 text-void md:px-12">
         <div className="mx-auto flex max-w-7xl flex-col gap-10">
-          <header className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-extrabold tracking-tight">Mirrorly</Link>
-            <Link href="/" className="pill rounded-full border-2 border-void/20 px-5 py-2.5 text-sm font-medium">Home</Link>
-          </header>
+          <SiteHeader />
           <div className="rise flex flex-wrap items-end justify-between gap-6">
             <h1 className="text-6xl font-extrabold leading-[0.88] tracking-[-3px] md:text-[112px] md:tracking-[-6px]">Try-on<br />studio.</h1>
             <p className="max-w-sm text-lg font-medium opacity-80">You on the left, the clothes in the middle, the result on the right.</p>
@@ -220,7 +225,18 @@ export default function TryOnPage() {
                 <a href={result.url} download="mirrorly-try-on.jpg" className="pill flex h-12 flex-1 items-center justify-center rounded-full bg-yellow font-bold text-void">Download</a>
                 <button onClick={start} className="pill h-12 flex-1 rounded-full border-2 border-white/20 font-medium">Not right? Try again</button>
               </div>
-              <p className="text-xs text-white/70">Made by the free {MODEL_NAME[result.model]} model.</p>
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span role="status" className="text-white/80">
+                  {saved === true ? (
+                    <Link href="/history" className="font-bold text-yellow underline-offset-4 hover:underline">Saved to your history</Link>
+                  ) : saved === false ? (
+                    "Couldn't save to history."
+                  ) : (
+                    "Saving…"
+                  )}
+                </span>
+                <span className="text-white/70">Made by the free {MODEL_NAME[result.model]} model.</span>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col gap-2">

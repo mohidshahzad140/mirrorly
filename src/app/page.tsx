@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Reveal } from "@/components/Reveal";
+import { SiteHeader } from "@/components/SiteHeader";
 
 const steps = [
   { word: "Snap.", text: "Add a full-body photo, standing straight." },
@@ -11,10 +13,7 @@ export default function Home() {
     <main className="relative min-h-screen overflow-hidden bg-void">
       <section className="relative rounded-br-[120px] rounded-bl-[40px] bg-yellow px-6 pb-32 pt-4 text-void md:rounded-br-[240px] md:px-12">
         <div className="mx-auto flex max-w-6xl flex-col gap-6">
-          <header className="flex h-12 items-center justify-between">
-            <span className="text-2xl font-extrabold tracking-tight">Mirrorly</span>
-            <Link href="/try-on" className="pill rounded-full bg-void px-5 py-3 text-sm font-medium text-white">Try on</Link>
-          </header>
+          <SiteHeader />
           <span className="rise mt-6 self-start rounded-full border-2 border-void/20 px-4 py-2 text-xs font-bold tracking-[2px]">VIRTUAL FITTING ROOM</span>
           <h1 className="rise max-w-4xl text-[68px] font-extrabold leading-[0.92] tracking-[-3.5px] md:text-[120px] md:tracking-[-6px]" style={{ animationDelay: "80ms" }}>
             Wear it before you buy it.
@@ -36,9 +35,11 @@ export default function Home() {
         <h2 className="text-4xl font-extrabold leading-none tracking-tight md:text-6xl">Three steps. One mirror.</h2>
         <ol className="flex flex-col">
           {steps.map((s, i) => (
-            <li key={s.word} className={`flex flex-col gap-2 border-t border-white/10 py-6 ${i === steps.length - 1 ? "border-b" : ""}`}>
-              <strong className={`text-[56px] font-extrabold leading-[0.9] tracking-[-2.5px] ${i === steps.length - 1 ? "text-yellow" : ""}`}>{s.word}</strong>
-              <span className="text-sm leading-relaxed text-white/70">{s.text}</span>
+            <li key={s.word} className={`border-t border-white/10 ${i === steps.length - 1 ? "border-b" : ""}`}>
+              <Reveal delay={i * 120} className="flex flex-col gap-2 py-6">
+                <strong className={`text-[56px] font-extrabold leading-[0.9] tracking-[-2.5px] md:text-[96px] ${i === steps.length - 1 ? "text-yellow" : ""}`}>{s.word}</strong>
+                <span className="text-sm leading-relaxed text-white/70">{s.text}</span>
+              </Reveal>
             </li>
           ))}
         </ol>
