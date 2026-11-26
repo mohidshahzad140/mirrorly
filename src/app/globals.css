@@ -50,6 +50,14 @@ html { scroll-behavior: smooth; }
 @keyframes scan { from { top: 10%; } to { top: 90%; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.nav-pill { transition: transform 500ms var(--ease-liquid), width 500ms var(--ease-liquid); }
+
+/* Windows "Animation effects" off: keep soft fades, drop movement and loops. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
+  .rise, .page-enter, .overlay, .overlay-card { animation: fade 500ms ease-out both; }
+  .reveal { transform: none; transition: opacity 600ms ease-out; }
+  .float, .blob, .scan { animation: none; }
+  .pill:hover:not(:disabled), .pill:active:not(:disabled), .lift:hover { transform: none; }
+  .nav-pill { transition: transform 200ms ease-out, width 200ms ease-out; }
 }

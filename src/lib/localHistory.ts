@@ -6,6 +6,7 @@ import type { Category, ModelId } from "./tryon";
  */
 export type HistoryItem = { id: string; image: Blob; category: Category; model: ModelId; createdAt: number };
 
+export const HISTORY_EVENT = "mirrorly:history";
 const DB = "mirrorly";
 const STORE = "history";
 
@@ -32,6 +33,7 @@ function tx<T>(mode: IDBTransactionMode, run: (s: IDBObjectStore) => IDBRequest<
 export async function saveLocal(item: Omit<HistoryItem, "id" | "createdAt">): Promise<HistoryItem> {
   const full: HistoryItem = { ...item, id: crypto.randomUUID(), createdAt: Date.now() };
   await tx("readwrite", (s) => s.put(full));
+  window.dispatchEvent(new Event(HISTORY_EVENT));
   return full;
 }
 

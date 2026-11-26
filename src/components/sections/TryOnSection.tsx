@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CompareSlider } from "@/components/CompareSlider";
-import { SiteHeader } from "@/components/SiteHeader";
+import { Reveal } from "@/components/Reveal";
 import { saveLocal } from "@/lib/localHistory";
 import { MESSAGES } from "@/lib/messages";
 import { prepareImage, validateImage } from "@/lib/image";
@@ -58,7 +58,7 @@ function PhotoPicker(props: {
   );
 }
 
-export default function TryOnPage() {
+export function TryOnSection() {
   const [person, setPerson] = useState<Picked>(null);
   const [garment, setGarment] = useState<Picked>(null);
   const [personErr, setPersonErr] = useState<string | null>(null);
@@ -136,15 +136,14 @@ export default function TryOnPage() {
           : "Sending your photos to the AI model";
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-void pb-16">
+    <section id="try-on" aria-label="Try on" className="relative scroll-mt-0 overflow-hidden bg-void pb-24 pt-8">
       <div className="blob absolute -bottom-32 right-[8%] h-[420px] w-[420px] bg-yellow opacity-80" aria-hidden />
-      <section className="relative rounded-br-[200px] rounded-bl-[48px] bg-yellow px-6 pb-44 pt-6 text-void md:px-12">
+      <section className="relative mx-4 rounded-tl-[48px] rounded-br-[200px] rounded-bl-[48px] bg-yellow px-6 pb-44 pt-24 md:mx-8 text-void md:px-12">
         <div className="mx-auto flex max-w-7xl flex-col gap-10">
-          <SiteHeader />
-          <div className="rise flex flex-wrap items-end justify-between gap-6">
-            <h1 className="text-6xl font-extrabold leading-[0.88] tracking-[-3px] md:text-[112px] md:tracking-[-6px]">Try-on<br />studio.</h1>
+          <Reveal className="flex flex-wrap items-end justify-between gap-6">
+            <h2 className="text-6xl font-extrabold leading-[0.88] tracking-[-3px] md:text-[112px] md:tracking-[-6px]">Try-on<br />studio.</h2>
             <p className="max-w-sm text-lg font-medium opacity-80">You on the left, the clothes in the middle, the result on the right.</p>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -228,7 +227,7 @@ export default function TryOnPage() {
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span role="status" className="text-white/80">
                   {saved === true ? (
-                    <Link href="/history" className="font-bold text-yellow underline-offset-4 hover:underline">Saved to your history</Link>
+                    <Link href="#history" className="font-bold text-yellow underline-offset-4 hover:underline">Saved to your history</Link>
                   ) : saved === false ? (
                     "Couldn't save to history."
                   ) : (
@@ -255,6 +254,6 @@ export default function TryOnPage() {
           </p>
         </section>
       </div>
-    </main>
+    </section>
   );
 }

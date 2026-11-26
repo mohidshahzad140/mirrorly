@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ExampleFigure } from "@/components/ExampleFigure";
 import { PageHero } from "@/components/PageHero";
 import { Reveal } from "@/components/Reveal";
-import { deleteLocal, listLocal, type HistoryItem } from "@/lib/localHistory";
+import { deleteLocal, HISTORY_EVENT, listLocal, type HistoryItem } from "@/lib/localHistory";
 
 const CATEGORY_LABEL = { top: "Top", bottom: "Bottom", dress: "Dress" } as const;
 const MODEL_NAME = { leffa: "Leffa", idmvton: "IDM-VTON" } as const;
@@ -18,20 +18,27 @@ const EXAMPLES = [
 
 type Shown = HistoryItem & { url: string };
 
-export default function HistoryPage() {
+export function HistorySection() {
   const [items, setItems] = useState<Shown[] | null>(null);
   const [open, setOpen] = useState<Shown | null>(null);
 
   useEffect(() => {
     let urls: string[] = [];
-    listLocal()
-      .then((list) => {
-        const shown = list.map((i) => ({ ...i, url: URL.createObjectURL(i.image) }));
-        urls = shown.map((s) => s.url);
-        setItems(shown);
-      })
-      .catch(() => setItems([]));
-    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+    const load = () =>
+      listLocal()
+        .then((list) => {
+          urls.forEach((u) => URL.revokeObjectURL(u));
+          const shown = list.map((i) => ({ ...i, url: URL.createObjectURL(i.image) }));
+          urls = shown.map((x) => x.url);
+          setItems(shown);
+        })
+        .catch(() => setItems([]));
+    load();
+    window.addEventListener(HISTORY_EVENT, load);
+    return () => {
+      window.removeEventListener(HISTORY_EVENT, load);
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
   }, []);
 
   useEffect(() => {
@@ -48,7 +55,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-void pb-20">
+    <section id="history" aria-label="History" className="relative overflow-hidden bg-void pb-24">
       <div className="blob absolute -left-24 top-[520px] h-72 w-72 bg-yellow opacity-80" aria-hidden />
       <PageHero title={<>Your<br />history.</>} intro="Every try-on you make is saved here, on this device only." />
 
@@ -81,7 +88,7 @@ export default function HistoryPage() {
                 <h2 className="text-2xl font-bold">No try-ons yet.</h2>
                 <p className="text-sm text-white/70">Make your first one and it shows up here. The cards below are examples.</p>
               </div>
-              <Link href="/try-on" className="pill flex h-14 items-center rounded-full bg-yellow px-7 font-bold text-void">Make a try-on</Link>
+              <Link href="#try-on" className="pill flex h-14 items-center rounded-full bg-yellow px-7 font-bold text-void">Make a try-on</Link>
             </Reveal>
             <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" aria-label="Example try-ons">
               {EXAMPLES.map((ex, i) => (
@@ -127,6 +134,6 @@ export default function HistoryPage() {
           </div>
         </div>
       )}
-    </main>
+    </section>
   );
 }

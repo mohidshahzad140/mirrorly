@@ -16,9 +16,9 @@ const BUILT_WITH = [
   { name: "Leffa and IDM-VTON", text: "The open-source AI models that make each try-on." },
 ];
 
-export default function About() {
+export function AboutSection() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-void pb-20">
+    <section id="about" aria-label="About" className="relative overflow-hidden bg-void pb-24">
       <div className="blob absolute -right-24 top-[700px] h-80 w-80 bg-yellow opacity-80" aria-hidden />
       <PageHero title={<>About<br />Mirrorly.</>} intro="A virtual fitting room, built as a human-computer interaction project." />
 
@@ -69,9 +69,9 @@ export default function About() {
               </li>
             ))}
           </ul>
-          <Link href="/try-on" className="pill flex h-14 items-center self-start rounded-full bg-void px-7 font-bold text-white">Try it on</Link>
+          <Link href="#try-on" className="pill flex h-14 items-center self-start rounded-full bg-void px-7 font-bold text-white">Try it on</Link>
         </Reveal>
       </section>
-    </main>
+    </section>
   );
 }

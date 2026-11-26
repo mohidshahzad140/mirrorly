@@ -20,9 +20,9 @@ const MODELS = [
   { name: "IDM-VTON", role: "Backup", text: "Steps in for tops if Leffa is busy or slow." },
 ];
 
-export default function HowItWorks() {
+export function HowSection() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-void pb-20">
+    <section id="how-it-works" aria-label="How it works" className="relative overflow-hidden bg-void pb-24">
       <PageHero title={<>How it<br />works.</>} intro="Three steps, about a minute, and no account needed." />
 
       <section className="mx-auto flex max-w-7xl flex-col px-6 py-16 md:px-12">
@@ -83,9 +83,9 @@ export default function HowItWorks() {
           </p>
         </Reveal>
         <Reveal delay={150}>
-          <Link href="/try-on" className="pill flex h-14 items-center rounded-full bg-yellow px-7 font-bold text-void">Try it on</Link>
+          <Link href="#try-on" className="pill flex h-14 items-center rounded-full bg-yellow px-7 font-bold text-void">Try it on</Link>
         </Reveal>
       </section>
-    </main>
+    </section>
   );
 }
