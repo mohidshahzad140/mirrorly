@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --color-yellow: #FDE047;
+  --color-void: #0A0A0A;
+  --color-card: #171717;
+  --color-well: #262626;
+  --font-sans: var(--font-inter), Inter, system-ui, sans-serif;
+  --ease-liquid: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html, body { background: #0A0A0A; color: #FFFFFF; }
+
+.pill { transition: transform 240ms var(--ease-liquid), box-shadow 240ms var(--ease-liquid); }
+.pill:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 10px 24px rgba(0,0,0,0.25); }
+.pill:active:not(:disabled) { transform: scale(0.95); }
+.pill:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 4px; }
+
+.rise { animation: rise 900ms var(--ease-liquid) both; }
+.float { animation: float 6s ease-in-out infinite; }
+.blob { animation: blob 12s ease-in-out infinite alternate; }
+.scan { animation: scan 2.4s ease-in-out infinite alternate; }
+.spin { animation: spin 900ms linear infinite; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes blob {
+  from { border-radius: 60% 40% 55% 45% / 50% 60% 40% 50%; transform: translate(0,0); }
+  to { border-radius: 40% 60% 45% 55% / 60% 40% 60% 40%; transform: translate(20px,-16px); }
+}
+@keyframes scan { from { top: 10%; } to { top: 90%; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
