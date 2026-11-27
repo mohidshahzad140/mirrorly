@@ -245,6 +245,7 @@ export function TryOnSection() {
                 </span>
                 <span className="text-white/70">Made by the free {MODEL_NAME[result.model]} model.</span>
               </div>
+              <p className="text-xs text-white/60">This shows how the style and color look on you, not whether the size fits.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2">

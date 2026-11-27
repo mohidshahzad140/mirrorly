@@ -18,10 +18,13 @@ export class TryOnError extends Error {
   }
 }
 
-const CHAIN: { id: ModelId; categories: Category[] }[] = [
-  { id: "leffa", categories: ["top", "bottom", "dress"] },
-  { id: "idmvton", categories: ["top"] },
-];
+// IDM-VTON only repaints the upper body, so it goes first for tops (Leffa can repaint
+// matching pants too). Leffa is the only model that handles bottoms and dresses.
+const CHAIN_BY_CATEGORY: Record<Category, ModelId[]> = {
+  top: ["idmvton", "leffa"],
+  bottom: ["leffa"],
+  dress: ["leffa"],
+};
 const NAME: Record<ModelId, string> = { leffa: "Leffa", idmvton: "IDM-VTON" };
 
 type Wire = { type: string; position?: number | null; url?: string; message?: string };
@@ -63,7 +66,7 @@ export async function runTryOn(
 ): Promise<{ image: Blob; model: ModelId }> {
   if (typeof navigator !== "undefined" && !navigator.onLine) throw new TryOnError("offline");
   const limit = opts.queueLimitMs ?? 90_000;
-  const chain = CHAIN.filter((m) => m.categories.includes(input.category));
+  const chain = CHAIN_BY_CATEGORY[input.category].map((id) => ({ id }));
   const details: string[] = [];
   let sawQuota = false;
   for (let i = 0; i < chain.length; i++) {

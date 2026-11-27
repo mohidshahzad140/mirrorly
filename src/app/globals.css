@@ -18,7 +18,7 @@ html, body { background: #0A0A0A; color: #FFFFFF; }
 
 .rise { animation: rise 900ms var(--ease-liquid) both; }
 .float { animation: float 6s ease-in-out infinite; }
-.blob { animation: blob 12s ease-in-out infinite alternate; }
+.blob { border-radius: 60% 40% 55% 45% / 50% 60% 40% 50%; animation: blob 12s ease-in-out infinite alternate; }
 .scan { animation: scan 2.4s ease-in-out infinite alternate; }
 .spin { animation: spin 900ms linear infinite; }
 
