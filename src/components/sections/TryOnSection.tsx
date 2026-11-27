@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { CompareSlider } from "@/components/CompareSlider";
 import { Reveal } from "@/components/Reveal";
 import { saveLocal } from "@/lib/localHistory";
+import { DEMO_RESULTS, SAMPLE_CLOTHES, SAMPLE_MODELS, type Sample } from "@/lib/samples";
+import { shareOrDownload } from "@/lib/share";
 import { MESSAGES } from "@/lib/messages";
 import { prepareImage, validateImage } from "@/lib/image";
 import { runTryOn, TryOnError, type Category, type ModelId, type TryOnStatus } from "@/lib/tryon";
@@ -26,6 +28,8 @@ function PhotoPicker(props: {
   error: string | null;
   onPick: (f: File) => void;
   capture?: boolean;
+  samples: Sample[];
+  samplesTitle: string;
 }) {
   const id = `pick-${props.title.replace(/\W/g, "")}`;
   return (
@@ -54,6 +58,27 @@ function PhotoPicker(props: {
         />
       </label>
       {props.error && <p role="alert" className="text-sm font-medium text-yellow">{props.error}</p>}
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-bold tracking-[2px] text-white/70">{props.samplesTitle}</span>
+        <div className="flex flex-wrap gap-2">
+          {props.samples.map((s) => (
+            <button
+              key={s.src}
+              type="button"
+              aria-label={s.label}
+              title={s.label}
+              onClick={async () => {
+                const blob = await (await fetch(s.src)).blob();
+                props.onPick(new File([blob], s.src.split("/").pop() ?? "sample.jpg", { type: blob.type || "image/jpeg" }));
+              }}
+              className="pill h-14 w-14 overflow-hidden rounded-full bg-well"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={s.src} alt="" className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
@@ -68,7 +93,7 @@ export function TryOnSection() {
   const [phase, setPhase] = useState<Phase>("pick");
   const [status, setStatus] = useState<TryOnStatus | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const [result, setResult] = useState<{ url: string; model: ModelId } | null>(null);
+  const [result, setResult] = useState<{ url: string; model: ModelId; blob?: Blob; before?: string; label?: string; demo?: boolean } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string[]>([]);
   const [saved, setSaved] = useState<boolean | null>(null);
@@ -102,7 +127,7 @@ export function TryOnSection() {
       const [p, g] = await Promise.all([prepareImage(person.file), prepareImage(garment.file)]);
       const out = await runTryOn({ person: p, garment: g, category, description: description.trim() }, { signal: ctrl.signal, onStatus: setStatus });
       if (ctrl.signal.aborted) return;
-      setResult({ url: URL.createObjectURL(out.image), model: out.model });
+      setResult({ url: URL.createObjectURL(out.image), model: out.model, blob: out.image });
       setPhase("result");
       setSaved(null);
       saveLocal({ image: out.image, category, model: out.model }).then(
@@ -121,6 +146,13 @@ export function TryOnSection() {
     } finally {
       busyRef.current = false;
     }
+  }
+
+  function showDemo() {
+    const d = DEMO_RESULTS[Math.floor(Math.random() * DEMO_RESULTS.length)];
+    setResult({ url: d.after, before: d.before, label: d.label, model: "idmvton", demo: true });
+    setSaved(null);
+    setPhase("result");
   }
 
   function cancel() {
@@ -159,6 +191,8 @@ export function TryOnSection() {
           error={personErr}
           capture
           onPick={(f) => pick(f, setPerson, setPersonErr)}
+          samples={SAMPLE_MODELS}
+          samplesTitle="OR PICK A SAMPLE MODEL"
         />
 
         <div className="flex min-w-0 flex-1 basis-80 flex-col gap-4">
@@ -169,6 +203,8 @@ export function TryOnSection() {
             picked={garment}
             error={garmentErr}
             onPick={(f) => pick(f, setGarment, setGarmentErr)}
+            samples={SAMPLE_CLOTHES}
+            samplesTitle="OR PICK A SAMPLE TOP"
           />
           <fieldset className="rounded-[32px] bg-card p-5">
             <legend className="sr-only">What kind of item is it?</legend>
@@ -202,8 +238,8 @@ export function TryOnSection() {
         <section aria-labelledby="result-h" className="float flex min-w-0 flex-1 basis-80 flex-col gap-4 rounded-[32px] bg-card p-5 shadow-2xl">
           <h2 id="result-h" className="text-xl font-bold">Result</h2>
           <div className="relative h-[420px] overflow-hidden rounded-[24px] bg-well">
-            {phase === "result" && result && person ? (
-              <CompareSlider before={person.url} after={result.url} label="You wearing the new item" />
+            {phase === "result" && result && (result.before || person) ? (
+              <CompareSlider before={result.before ?? person!.url} after={result.url} label={result.label ?? "You wearing the new item"} />
             ) : phase === "running" ? (
               <>
                 <div className="scan absolute inset-x-0 h-[3px] bg-yellow" aria-hidden />
@@ -229,7 +265,10 @@ export function TryOnSection() {
                     ))}
                   </ul>
                 )}
-                <button onClick={start} className="pill rounded-full bg-yellow px-6 py-3 font-bold text-void">Try again</button>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={start} className="pill rounded-full bg-yellow px-6 py-3 font-bold text-void">Try again</button>
+                  <button onClick={showDemo} className="pill rounded-full border-2 border-white/20 px-6 py-3 font-medium">See a saved example</button>
+                </div>
               </div>
             ) : (
               <div className="flex h-full items-center justify-center p-6 text-center text-sm text-white/70">
@@ -243,8 +282,20 @@ export function TryOnSection() {
           ) : phase === "result" && result ? (
             <div className="flex flex-col gap-3">
               <div className="flex gap-2">
-                <a href={result.url} download="mirrorly-try-on.jpg" className="pill flex h-12 flex-1 items-center justify-center rounded-full bg-yellow font-bold text-void">Download</a>
-                <button onClick={start} className="pill h-12 flex-1 rounded-full border-2 border-white/20 font-medium">Not right? Try again</button>
+                <a href={result.url} download="mirrorly-try-on.png" className="pill flex h-12 flex-1 items-center justify-center rounded-full bg-yellow font-bold text-void">Download</a>
+                <button
+                  onClick={async () => shareOrDownload(result.blob ?? (await (await fetch(result.url)).blob()), "mirrorly-try-on.png")}
+                  className="pill h-12 flex-1 rounded-full border-2 border-white/20 font-medium"
+                >
+                  Share
+                </button>
+              </div>
+              <div className="flex">
+                {result.demo ? (
+                  <span className="rounded-full bg-yellow px-3 py-1 text-xs font-bold text-void">Saved example</span>
+                ) : (
+                  <button onClick={start} className="text-sm font-bold text-white underline-offset-4 hover:underline">Not right? Try again</button>
+                )}
               </div>
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span role="status" className="text-white/80">
@@ -252,6 +303,8 @@ export function TryOnSection() {
                     <Link href="#history" className="font-bold text-yellow underline-offset-4 hover:underline">Saved to your history</Link>
                   ) : saved === false ? (
                     "Couldn't save to history."
+                  ) : result.demo ? (
+                    "Made in advance, not saved."
                   ) : (
                     "Saving…"
                   )}

@@ -67,7 +67,7 @@ export async function* runServer(
   const token = process.env.HF_TOKEN?.trim();
   const client = await Client.connect(a.space, {
     events: ["data", "status"],
-    ...(token ? { hf_token: token as `hf_${string}` } : {}),
+    ...(token ? { token: token as `hf_${string}` } : {}),
   });
   const job = client.submit(a.endpoint, a.params(person, garment, category, description));
   signal.addEventListener("abort", () => job.cancel(), { once: true });

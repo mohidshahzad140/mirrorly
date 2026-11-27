@@ -69,6 +69,7 @@ export function AboutSection() {
               </li>
             ))}
           </ul>
+          <p className="text-xs font-medium opacity-70">Sample photos: VITON-HD dataset (Choi et al., CVPR 2021), via the IDM-VTON demo, CC BY-NC-SA 4.0. Used for non-commercial teaching only.</p>
           <Link href="#try-on" className="pill flex h-14 items-center self-start rounded-full bg-void px-7 font-bold text-white">Try it on</Link>
         </Reveal>
       </section>
