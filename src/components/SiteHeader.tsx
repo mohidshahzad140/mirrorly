@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { AccountButton } from "./AccountButton";
 
 export const SECTIONS = [
   { id: "home", label: "Home" },
@@ -66,6 +67,8 @@ export function SiteHeader() {
             </a>
           ))}
         </nav>
+        <div className="flex items-center gap-2">
+        <AccountButton />
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -75,6 +78,7 @@ export function SiteHeader() {
         >
           {open ? "Close" : SECTIONS.find((s) => s.id === active)?.label}
         </button>
+        </div>
       </div>
       <div
         id="mobile-menu"

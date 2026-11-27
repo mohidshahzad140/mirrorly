@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CompareSlider } from "@/components/CompareSlider";
 import { Reveal } from "@/components/Reveal";
-import { saveLocal } from "@/lib/localHistory";
+import { saveTryOn } from "@/lib/history";
 import { DEMO_RESULTS, SAMPLE_CLOTHES, SAMPLE_MODELS, type Sample } from "@/lib/samples";
 import { shareOrDownload } from "@/lib/share";
 import { MESSAGES } from "@/lib/messages";
@@ -96,7 +96,7 @@ export function TryOnSection() {
   const [result, setResult] = useState<{ url: string; model: ModelId; blob?: Blob; before?: string; label?: string; demo?: boolean } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string[]>([]);
-  const [saved, setSaved] = useState<boolean | null>(null);
+  const [saved, setSaved] = useState<"account" | "device" | false | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const busyRef = useRef(false);
 
@@ -130,8 +130,8 @@ export function TryOnSection() {
       setResult({ url: URL.createObjectURL(out.image), model: out.model, blob: out.image });
       setPhase("result");
       setSaved(null);
-      saveLocal({ image: out.image, category, model: out.model }).then(
-        () => setSaved(true),
+      saveTryOn(out.image, category, out.model).then(
+        (where) => setSaved(where),
         () => setSaved(false),
       );
     } catch (e) {
@@ -299,8 +299,8 @@ export function TryOnSection() {
               </div>
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span role="status" className="text-white/80">
-                  {saved === true ? (
-                    <Link href="#history" className="font-bold text-yellow underline-offset-4 hover:underline">Saved to your history</Link>
+                  {saved === "account" || saved === "device" ? (
+                    <Link href="#history" className="font-bold text-yellow underline-offset-4 hover:underline">{saved === "account" ? "Saved to your account" : "Saved on this device"}</Link>
                   ) : saved === false ? (
                     "Couldn't save to history."
                   ) : result.demo ? (
