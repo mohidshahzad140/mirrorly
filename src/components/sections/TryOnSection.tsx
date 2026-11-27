@@ -69,6 +69,7 @@ export function TryOnSection() {
   const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState<{ url: string; model: ModelId } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<string[]>([]);
   const [saved, setSaved] = useState<boolean | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const busyRef = useRef(false);
@@ -112,6 +113,7 @@ export function TryOnSection() {
         setPhase("pick");
       } else {
         const code = e instanceof TryOnError ? e.code : "allFailed";
+        setErrorDetails(e instanceof TryOnError ? e.details : [String((e as Error)?.message ?? e)]);
         setErrorMsg(code === "quota" ? MESSAGES.quota : code === "offline" ? MESSAGES.offline : MESSAGES.allFailed);
         setPhase("error");
       }
@@ -207,6 +209,13 @@ export function TryOnSection() {
             ) : phase === "error" ? (
               <div role="alert" className="flex h-full flex-col items-start justify-end gap-3 p-5">
                 <p className="font-bold">{errorMsg}</p>
+                {errorDetails.length > 0 && (
+                  <ul className="flex flex-col gap-1 text-xs leading-relaxed text-white/60">
+                    {errorDetails.map((d) => (
+                      <li key={d}>{d}</li>
+                    ))}
+                  </ul>
+                )}
                 <button onClick={start} className="pill rounded-full bg-yellow px-6 py-3 font-bold text-void">Try again</button>
               </div>
             ) : (

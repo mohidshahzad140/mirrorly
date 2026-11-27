@@ -1,5 +1,4 @@
-import { Client, handle_file } from "@gradio/client";
-
+/** Browser side: asks our own server (/api/tryon) to run each model, with automatic fallback. */
 export type Category = "top" | "bottom" | "dress";
 export type ModelId = "leffa" | "idmvton";
 export type TryOnInput = { person: Blob; garment: Blob; category: Category };
@@ -10,94 +9,52 @@ export type TryOnStatus =
   | { kind: "switched"; model: ModelId };
 
 export class TryOnError extends Error {
-  constructor(public code: "quota" | "allFailed" | "cancelled" | "offline", message?: string) {
+  constructor(
+    public code: "quota" | "allFailed" | "cancelled" | "offline",
+    message?: string,
+    public details: string[] = [],
+  ) {
     super(message ?? code);
   }
 }
 
-type Adapter = {
-  id: ModelId;
-  space: string;
-  categories: Category[];
-  endpoint: string;
-  params(input: TryOnInput): Record<string, unknown>;
-};
-
-const LEFFA_TYPE: Record<Category, string> = { top: "upper_body", bottom: "lower_body", dress: "dresses" };
-
-export const ADAPTERS: Adapter[] = [
-  {
-    id: "leffa",
-    space: "franciszzj/Leffa",
-    categories: ["top", "bottom", "dress"],
-    endpoint: "/leffa_predict_vt",
-    params: ({ person, garment, category }) => ({
-      src_image_path: handle_file(person),
-      ref_image_path: handle_file(garment),
-      ref_acceleration: "False",
-      step: 30,
-      scale: 2.5,
-      seed: 42,
-      vt_model_type: category === "top" ? "viton_hd" : "dress_code",
-      vt_garment_type: LEFFA_TYPE[category],
-      vt_repaint: "False",
-    }),
-  },
-  {
-    id: "idmvton",
-    space: "yisol/IDM-VTON",
-    categories: ["top"],
-    endpoint: "/tryon",
-    params: ({ person, garment }) => ({
-      dict: { background: handle_file(person), layers: [], composite: null },
-      garm_img: handle_file(garment),
-      garment_des: "",
-      is_checked: true,
-      is_checked_crop: false,
-      denoise_steps: 30,
-      seed: 42,
-    }),
-  },
+const CHAIN: { id: ModelId; categories: Category[] }[] = [
+  { id: "leffa", categories: ["top", "bottom", "dress"] },
+  { id: "idmvton", categories: ["top"] },
 ];
+const NAME: Record<ModelId, string> = { leffa: "Leffa", idmvton: "IDM-VTON" };
 
-function imageUrlFrom(data: unknown): string | null {
-  const first = Array.isArray(data) ? data[0] : data;
-  if (first && typeof first === "object" && "url" in first) return (first as { url: string }).url;
-  if (typeof first === "string") return first;
-  return null;
-}
+type Wire = { type: string; position?: number | null; url?: string; message?: string };
 
-async function runOne(
-  a: Adapter,
-  input: TryOnInput,
-  signal: AbortSignal,
-  onStatus: (s: TryOnStatus) => void,
-): Promise<Blob> {
-  onStatus({ kind: "sending", model: a.id });
-  const client = await Client.connect(a.space);
-  const job = client.submit(a.endpoint, a.params(input));
-  const cancel = () => job.cancel();
-  signal.addEventListener("abort", cancel, { once: true });
-  try {
-    for await (const ev of job) {
-      if (signal.aborted) throw new TryOnError("cancelled");
-      if (ev.type === "status") {
-        if (ev.stage === "error") throw new Error(typeof ev.message === "string" ? ev.message : "model error");
-        if (ev.stage === "pending" && typeof ev.position === "number" && ev.position > 0)
-          onStatus({ kind: "queue", position: ev.position, model: a.id });
-        else if (ev.stage === "pending") onStatus({ kind: "generating", model: a.id });
-      }
-      if (ev.type === "data") {
-        const url = imageUrlFrom(ev.data);
-        if (!url) throw new Error("no image in result");
-        const res = await fetch(url, { signal });
-        return await res.blob();
-      }
+async function runOne(id: ModelId, input: TryOnInput, signal: AbortSignal, onStatus: (s: TryOnStatus) => void): Promise<Blob> {
+  onStatus({ kind: "sending", model: id });
+  const form = new FormData();
+  form.set("model", id);
+  form.set("category", input.category);
+  form.set("person", input.person, "person.jpg");
+  form.set("garment", input.garment, "garment.jpg");
+  const res = await fetch("/api/tryon", { method: "POST", body: form, signal });
+  if (!res.ok || !res.body) throw new Error(`Server error ${res.status}`);
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      if (!line) continue;
+      const ev = JSON.parse(line) as Wire;
+      if (ev.type === "queue") onStatus({ kind: "queue", position: ev.position ?? null, model: id });
+      else if (ev.type === "generating") onStatus({ kind: "generating", model: id });
+      else if (ev.type === "error") throw new Error(ev.message ?? "The model returned an error.");
+      else if (ev.type === "done" && ev.url) return await (await fetch(ev.url, { signal })).blob();
     }
-    throw new Error("model closed without a result");
-  } finally {
-    signal.removeEventListener("abort", cancel);
   }
+  throw new Error("The model closed without a result.");
 }
 
 export async function runTryOn(
@@ -106,29 +63,31 @@ export async function runTryOn(
 ): Promise<{ image: Blob; model: ModelId }> {
   if (typeof navigator !== "undefined" && !navigator.onLine) throw new TryOnError("offline");
   const limit = opts.queueLimitMs ?? 90_000;
-  const chain = ADAPTERS.filter((a) => a.categories.includes(input.category));
+  const chain = CHAIN.filter((m) => m.categories.includes(input.category));
+  const details: string[] = [];
   let sawQuota = false;
   for (let i = 0; i < chain.length; i++) {
     if (opts.signal.aborted) throw new TryOnError("cancelled");
-    const a = chain[i];
-    if (i > 0) opts.onStatus({ kind: "switched", model: a.id });
+    const { id } = chain[i];
+    if (i > 0) opts.onStatus({ kind: "switched", model: id });
     const child = new AbortController();
     const onParentAbort = () => child.abort();
     opts.signal.addEventListener("abort", onParentAbort, { once: true });
-    // Only the last model in the chain is allowed to wait past the limit.
+    // Only the last model in the chain may wait past the limit.
     const timer = i < chain.length - 1 ? setTimeout(() => child.abort(), limit) : undefined;
     try {
-      const image = await runOne(a, input, child.signal, opts.onStatus);
+      const image = await runOne(id, input, child.signal, opts.onStatus);
       if (opts.signal.aborted) throw new TryOnError("cancelled");
-      return { image, model: a.id };
+      return { image, model: id };
     } catch (e) {
       if (opts.signal.aborted) throw new TryOnError("cancelled");
-      const msg = String((e as Error)?.message ?? e).toLowerCase();
-      if (msg.includes("quota") || msg.includes("gpu")) sawQuota = true;
+      const msg = child.signal.aborted ? "Took longer than 90 seconds, so Mirrorly moved on." : String((e as Error)?.message ?? e);
+      details.push(`${NAME[id]}: ${msg}`);
+      if (/quota/i.test(msg)) sawQuota = true;
     } finally {
       clearTimeout(timer);
       opts.signal.removeEventListener("abort", onParentAbort);
     }
   }
-  throw new TryOnError(sawQuota ? "quota" : "allFailed");
+  throw new TryOnError(sawQuota ? "quota" : "allFailed", undefined, details);
 }
