@@ -1,7 +1,7 @@
 /** Browser side: asks our own server (/api/tryon) to run each model, with automatic fallback. */
 export type Category = "top" | "bottom" | "dress";
 export type ModelId = "leffa" | "idmvton";
-export type TryOnInput = { person: Blob; garment: Blob; category: Category };
+export type TryOnInput = { person: Blob; garment: Blob; category: Category; description?: string };
 export type TryOnStatus =
   | { kind: "sending"; model: ModelId }
   | { kind: "queue"; position: number | null; model: ModelId }
@@ -36,6 +36,7 @@ async function runOne(id: ModelId, input: TryOnInput, signal: AbortSignal, onSta
   form.set("category", input.category);
   form.set("person", input.person, "person.jpg");
   form.set("garment", input.garment, "garment.jpg");
+  form.set("description", (input.description ?? "").slice(0, 200));
   const res = await fetch("/api/tryon", { method: "POST", body: form, signal });
   if (!res.ok || !res.body) throw new Error(`Server error ${res.status}`);
   const reader = res.body.getReader();

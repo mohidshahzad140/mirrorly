@@ -6,7 +6,7 @@ import type { Category, ModelId } from "./tryon";
 type Adapter = {
   space: string;
   endpoint: string;
-  params(person: Blob, garment: Blob, category: Category): Record<string, unknown>;
+  params(person: Blob, garment: Blob, category: Category, description: string): Record<string, unknown>;
 };
 
 const LEFFA_TYPE: Record<Category, string> = { top: "upper_body", bottom: "lower_body", dress: "dresses" };
@@ -30,12 +30,13 @@ export const SERVER_ADAPTERS: Record<ModelId, Adapter> = {
   idmvton: {
     space: "yisol/IDM-VTON",
     endpoint: "/tryon",
-    params: (person, garment) => ({
+    params: (person, garment, _category, description) => ({
       dict: { background: handle_file(person), layers: [], composite: null },
       garm_img: handle_file(garment),
-      garment_des: "",
+      garment_des: description,
       is_checked: true,
-      is_checked_crop: false,
+      // Crop a 3:4 area around the person, work on it, paste it back: less squashing, steadier face.
+      is_checked_crop: true,
       denoise_steps: 30,
       seed: 42,
     }),
@@ -59,6 +60,7 @@ export async function* runServer(
   person: Blob,
   garment: Blob,
   category: Category,
+  description: string,
   signal: AbortSignal,
 ): AsyncGenerator<StreamEvent> {
   const a = SERVER_ADAPTERS[model];
@@ -67,7 +69,7 @@ export async function* runServer(
     events: ["data", "status"],
     ...(token ? { hf_token: token as `hf_${string}` } : {}),
   });
-  const job = client.submit(a.endpoint, a.params(person, garment, category));
+  const job = client.submit(a.endpoint, a.params(person, garment, category, description));
   signal.addEventListener("abort", () => job.cancel(), { once: true });
   for await (const ev of job) {
     if (signal.aborted) return;

@@ -14,6 +14,7 @@ export async function POST(req: Request) {
   const category = form.get("category") as Category;
   const person = form.get("person");
   const garment = form.get("garment");
+  const description = String(form.get("description") ?? "").slice(0, 200);
   if (!MODELS.includes(model) || !CATEGORIES.includes(category) || !(person instanceof Blob) || !(garment instanceof Blob)) {
     return new Response("Bad request", { status: 400 });
   }
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
     async start(controller) {
       const send = (e: StreamEvent) => controller.enqueue(enc.encode(JSON.stringify(e) + "\n"));
       try {
-        for await (const e of runServer(model, person, garment, category, req.signal)) send(e);
+        for await (const e of runServer(model, person, garment, category, description, req.signal)) send(e);
       } catch (e) {
         send({ type: "error", message: String((e as Error)?.message ?? e) });
       } finally {

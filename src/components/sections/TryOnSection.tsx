@@ -64,6 +64,7 @@ export function TryOnSection() {
   const [personErr, setPersonErr] = useState<string | null>(null);
   const [garmentErr, setGarmentErr] = useState<string | null>(null);
   const [category, setCategory] = useState<Category | null>(null);
+  const [description, setDescription] = useState("");
   const [phase, setPhase] = useState<Phase>("pick");
   const [status, setStatus] = useState<TryOnStatus | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -99,7 +100,7 @@ export function TryOnSection() {
     setErrorMsg(null);
     try {
       const [p, g] = await Promise.all([prepareImage(person.file), prepareImage(garment.file)]);
-      const out = await runTryOn({ person: p, garment: g, category }, { signal: ctrl.signal, onStatus: setStatus });
+      const out = await runTryOn({ person: p, garment: g, category, description: description.trim() }, { signal: ctrl.signal, onStatus: setStatus });
       if (ctrl.signal.aborted) return;
       setResult({ url: URL.createObjectURL(out.image), model: out.model });
       setPhase("result");
@@ -183,6 +184,18 @@ export function TryOnSection() {
                 </label>
               ))}
             </div>
+            <label className="mt-4 flex flex-col gap-2">
+              <span className="text-xs font-bold tracking-[2px] text-white/70">DESCRIBE IT (OPTIONAL)</span>
+              <input
+                type="text"
+                value={description}
+                maxLength={200}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. cropped, fitted red leather jacket"
+                className="h-12 rounded-full bg-well px-5 text-sm text-white placeholder:text-white/40 focus:outline-2 focus:outline-yellow"
+              />
+              <span className="text-xs text-white/60">Words like cropped, fitted, oversized or long help the AI get the shape right. Works best for tops.</span>
+            </label>
           </fieldset>
         </div>
 
